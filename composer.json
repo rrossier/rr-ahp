@@ -1,0 +1,21 @@
+{
+	"name": "rrossier/basic_ahp",
+	"type": "library",
+	"description": "Basic AHP",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Romain Rossier"
+		}
+	],
+	"autoload": {
+		"psr-4": {
+			"Lattice\\AHP\\": "src/"
+		}
+	},
+	"require": {
+		"symfony/var-dumper": "^3.3",
+		"doctrine/collections": "^2.0@dev"
+	},
+	"minimum-stability": "dev"
+}
