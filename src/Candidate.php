@@ -37,4 +37,9 @@ class Candidate{
 	public function getType(){
 		return $this->type;
 	}
+
+	public function getProfile()
+	{
+		return $this->profile;
+	}
 }

@@ -1,7 +1,7 @@
 {
 	"name": "rrossier/basic_ahp",
 	"type": "library",
-	"description": "Basic AHP",
+	"description": "Basic Analytic Hierarchy Process implementation in PHP",
 	"license": "MIT",
 	"authors": [
 		{
@@ -14,8 +14,7 @@
 		}
 	},
 	"require": {
-		"symfony/var-dumper": "^3.3",
-		"doctrine/collections": "^2.0@dev"
+		"symfony/var-dumper": "^5.0"
 	},
 	"minimum-stability": "dev"
 }
