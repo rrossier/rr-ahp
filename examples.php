@@ -11,6 +11,7 @@ use Lattice\AHP\AHP;
  *	
  *
  */
+echo '<h3>Minimum Example</h3>';
 
 $ahp = new AHP();
 
@@ -18,24 +19,24 @@ $tom = new Candidate(['name'=>'Tom','profile'=>['experience'=>10,'education'=>5,
 $dick = new Candidate(['name'=>'Dick','profile'=>['experience'=>30,'education'=>3,'charisma'=>5,'age'=>60]]);
 $harry = new Candidate(['name'=>'Harry','profile'=>['experience'=>5,'education'=>7,'charisma'=>3,'age'=>30]]);
 
-$experienceCriterion = new Criterion('experience');
-$educationCriterion = new Criterion('education');
-$charismaCriterion = new Criterion('charisma');
-$ageCriterion = new Criterion('age');
+$experienceCriterion = new Criterion('Experience');
+$educationCriterion = new Criterion('Education');
+$charismaCriterion = new Criterion('Charisma');
+$ageCriterion = new Criterion('Age');
 
 $ahp->addCandidate($tom);
 $ahp->addCandidate($dick);
 $ahp->addCandidate($harry);
-$ahp->generateCriteria();
 
-echo '<h3>Minimum Example</h3>';
-dump($ahp->getFinalPriorities('EVM'));
-dump($ahp->getFinalPriorities('RGGM'));
+$ahp->displayResults('total');
+$ahp->displayResults();
+dump($ahp->getGoal()->getConsistencyRatio());
 
 /*
  *
  *
  */
+echo '<h3>Explicit Comparisons without Goal</h3>';
 
 $ahp = new AHP();
 
@@ -43,10 +44,10 @@ $tom = new Candidate(['name'=>'Tom']);
 $dick = new Candidate(['name'=>'Dick']);
 $harry = new Candidate(['name'=>'Harry']);
 
-$experienceCriterion = new Criterion('experience');
-$educationCriterion = new Criterion('education');
-$charismaCriterion = new Criterion('charisma');
-$ageCriterion = new Criterion('age');
+$experienceCriterion = new Criterion('Experience');
+$educationCriterion = new Criterion('Education');
+$charismaCriterion = new Criterion('Charisma');
+$ageCriterion = new Criterion('Age');
 
 $ahp->addCandidate($tom);
 $ahp->addCandidate($dick);
@@ -73,14 +74,16 @@ $ageCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$dick
 $ageCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$dick,'candidate2'=>$harry,'scoreCandidate1'=>9]));
 $ageCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$tom,'candidate2'=>$harry,'scoreCandidate1'=>5]));
 
-echo '<h3>Explicit Comparisons without Goal</h3>';
-dump($ahp->getFinalPriorities('EVM'));
-dump($ahp->getFinalPriorities('RGGM'));
+$ahp->displayResults('total');
+$ahp->displayResults();
+dump($ahp->getGoal()->getConsistencyRatio());
+
 
 /*
  *
  *
  */
+echo '<h3>Explicit Comparisons and Goal</h3>';
 
 $ahp = new AHP();
 
@@ -88,24 +91,26 @@ $tom = new Candidate(['name'=>'Tom']);
 $dick = new Candidate(['name'=>'Dick']);
 $harry = new Candidate(['name'=>'Harry']);
 
-$experienceCriterion = new Criterion('experience');
-$educationCriterion = new Criterion('education');
-$charismaCriterion = new Criterion('charisma');
-$ageCriterion = new Criterion('age');
+$experienceCriterion = new Criterion('Experience');
+$educationCriterion = new Criterion('Education');
+$charismaCriterion = new Criterion('Charisma');
+$ageCriterion = new Criterion('Age');
 // goal criterion
-$goalCriterion = new Criterion('goal');
+$goalCriterion = new Criterion('Choose a leader');
 $goalCriterion->setType('goal');
-
-$ahp->addCandidate($tom);
-$ahp->addCandidate($dick);
-$ahp->addCandidate($harry);
-
-$ahp->addCriterion($experienceCriterion);
-$ahp->addCriterion($educationCriterion);
-$ahp->addCriterion($charismaCriterion);
-$ahp->addCriterion($ageCriterion);
+// explicitly added
 $ahp->addCriterion($goalCriterion);
 
+$ahp->addCandidate($tom);
+$ahp->addCandidate($dick);
+$ahp->addCandidate($harry);
+
+$goalCriterion->addCriterion($experienceCriterion);
+$goalCriterion->addCriterion($educationCriterion);
+$goalCriterion->addCriterion($charismaCriterion);
+$goalCriterion->addCriterion($ageCriterion);
+
+// define the comparisons as before
 $experienceCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$tom,'candidate2'=>$dick,'scoreCandidate2'=>4]));
 $experienceCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$tom,'candidate2'=>$harry,'scoreCandidate1'=>4]));
 $experienceCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$dick,'candidate2'=>$harry,'scoreCandidate1'=>9]));
@@ -122,55 +127,38 @@ $ageCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$dick
 $ageCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$dick,'candidate2'=>$harry,'scoreCandidate1'=>9]));
 $ageCriterion->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$tom,'candidate2'=>$harry,'scoreCandidate1'=>5]));
 
-//
-$experienceNode = $experienceCriterion->deriveCandidate();
-$educationNode = $educationCriterion->deriveCandidate();
-$charismaNode = $charismaCriterion->deriveCandidate();
-$ageNode = $ageCriterion->deriveCandidate();
-
+// define the comparisons between the criteria
 $goalCriterion->addPairwiseComparison(new PairwiseComparison([
-											'candidate1' => $experienceNode,
-											'candidate2' => $educationNode,
+											'candidate1' => $experienceCriterion,
+											'candidate2' => $educationCriterion,
 											'scoreCandidate1' => 4
 											]));
 $goalCriterion->addPairwiseComparison(new PairwiseComparison([
-											'candidate1' => $experienceNode,
-											'candidate2' => $charismaNode,
+											'candidate1' => $experienceCriterion,
+											'candidate2' => $charismaCriterion,
 											'scoreCandidate1' => 3
 											]));
 $goalCriterion->addPairwiseComparison(new PairwiseComparison([
-											'candidate1' => $experienceNode,
-											'candidate2' => $ageNode,
+											'candidate1' => $experienceCriterion,
+											'candidate2' => $ageCriterion,
 											'scoreCandidate1' => 7
 											]));
 $goalCriterion->addPairwiseComparison(new PairwiseComparison([
-											'candidate1' => $educationNode,
-											'candidate2' => $charismaNode,
+											'candidate1' => $educationCriterion,
+											'candidate2' => $charismaCriterion,
 											'scoreCandidate2' => 3
 											]));
 $goalCriterion->addPairwiseComparison(new PairwiseComparison([
-											'candidate1' => $educationNode,
-											'candidate2' => $ageNode,
+											'candidate1' => $educationCriterion,
+											'candidate2' => $ageCriterion,
 											'scoreCandidate1' => 3
 											]));
 $goalCriterion->addPairwiseComparison(new PairwiseComparison([
-											'candidate1' => $ageNode,
-											'candidate2' => $charismaNode,
+											'candidate1' => $ageCriterion,
+											'candidate2' => $charismaCriterion,
 											'scoreCandidate2' => 5
 											]));
 
-echo '<h3>Explicit Comparisons and Goal</h3>';
-dump($ahp->getFinalPriorities('EVM'));
-dump($ahp->getFinalPriorities('RGGM'));
-
-/*
- * Additional useful functions
- * based on last example
- */
-
-foreach ($ahp->getCriteria() as $criterion) {
-	echo '<strong>'.$criterion->getName().'</strong>';
-	$criterion->displayMatrix();
-	echo '<hr/>';
-}
-
+$ahp->displayResults('total');
+$ahp->displayResults();
+dump($ahp->getGoal()->getConsistencyRatio());

@@ -48,6 +48,12 @@ class Matrix{
 		return $this->values;
 	}
 
+	public function getKeys()
+	{
+		$keys = call_user_func_array('array_intersect', array_map('array_keys', $this->values) );
+		return $keys;
+	}
+
 	public function calculateDimensions():self
 	{
 		$this->nCols = count($this->values);
@@ -432,5 +438,26 @@ class Matrix{
 		$B = $this->matrixSum($identityMatrix->scalarProduct(-$this->eigenvalue))->matrixProduct($this->eigenvector);
 
 		return ($B->sum() < $this->estimationThreshold);
+	}
+
+	/**
+	 * Extract the values to return an array
+	 *
+	 *
+	 * @return Array
+	 */
+	public function extract()
+	{
+		if($this->nCols == 1){
+			// vertical vector
+			return $this->values[0];
+		}
+		else if($this->nRows == 1){
+			// horizontal vector
+			return $this->transpose(FALSE)->extract();
+		}
+		else{
+			return $this->values;
+		}
 	}
 }

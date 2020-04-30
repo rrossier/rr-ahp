@@ -2,11 +2,9 @@
 
 namespace Lattice\AHP;
 
-class Candidate{
+class Candidate extends Node{
 
-	private $name;
 	private $profile;
-	private $type = 'alternative';
 
 	public function __construct($array = null){
 		if(!is_null($array)){
@@ -14,28 +12,14 @@ class Candidate{
 				$this->$key = $value;
 			}
 		}
+		$this->type = 'alternative';
 	}
 
-	public function setName($name):self
+	public function setProfile($profile):self
 	{
-		$this->name = $name;
+		$this->profile = $profile;
 
 		return $this;
-	}
-
-	public function getName(){
-		return $this->name;
-	}
-
-	public function setType($type):self
-	{
-		$this->type = $type;
-
-		return $this;
-	}
-
-	public function getType(){
-		return $this->type;
 	}
 
 	public function getProfile()

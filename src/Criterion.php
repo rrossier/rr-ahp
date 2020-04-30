@@ -2,10 +2,11 @@
 
 namespace Lattice\AHP;
 
-class Criterion{
+class Criterion extends Node{
 	
-	private $name;
-	private $type = 'node';
+	// private $name;
+	// private $type = 'criteria';
+	private $childrenCriteria;
 	private $pairwiseComparisons;
 	private $nbCandidates;
 	private $matrix;
@@ -18,30 +19,28 @@ class Criterion{
 	public function __construct($name)
 	{
 		$this->name = $name;
+		$this->type = 'criteria';
+		$this->childrenCriteria = [];
 		$this->pairwiseComparisons = [];
 		$this->matrix = [];
 		$this->priorities = [];
-	}
-
-	public function setType($type):self
-	{
-		$this->type = $type;
-
-		return $this;
-	}
-
-	public function getType()
-	{
-		return $this->type;
 	}
 
 	public function isGoal(){
 		return $this->type == 'goal';
 	}
 
-	public function getName()
+	public function addCriterion(Criterion $criterion):self
 	{
-		return $this->name;
+		if(!in_array($criterion,$this->childrenCriteria, TRUE)){
+				$this->childrenCriteria[] = $criterion;	
+		}
+		return $this;
+	}
+
+	public function getCriteria()
+	{
+		return $this->childrenCriteria;
 	}
 
 	public function getNbCandidates()
@@ -62,34 +61,9 @@ class Criterion{
 		return $this->transformationFunctions[$i];
 	}
 
-	public function setWeights($weights):self
-	{
-		$this->weights = $weights;
-
-		return $this;
-	}
-
-	public function getWeights()
-	{
-		if(!isset($this->weights)){
-			$this->weights = array_fill(0, $this->getNbCandidates(), 1);
-		}
-		return $this->weights;
-	}
-
-	public function getWeight($i = 0)
-	{
-		return $this->weights[$i];
-	}
-
-	public function getTotalWeights()
-	{
-		return array_sum($this->getWeights());
-	}
-
 	public function addPairwiseComparison(PairwiseComparison $pairwiseComparison):self
 	{
-		if(!in_array($pairwiseComparison, $this->pairwiseComparisons)){
+		if(!in_array($pairwiseComparison, $this->pairwiseComparisons, TRUE)){
 			$this->pairwiseComparisons[] = $pairwiseComparison;
 			$pairwiseComparison->setCriterion($this);
 		}
@@ -97,14 +71,34 @@ class Criterion{
 		return $this;
 	}
 
+	public function generatePairwiseComparison(){
+		if(empty($this->childrenCriteria))
+			throw new \Exception("Cannot generate pairwise comparisons without any criteria", 1);
+			
+		$i = $j = 0;
+		foreach ($this->childrenCriteria as $name1 => $criterion1) {
+			$i++;
+			$j = 0;
+			foreach ($this->childrenCriteria as $name2 => $criterion2) {
+				$j++;
+				if($i < $j){
+					$pCArray = ['candidate1' => $criterion1, 'candidate2' => $criterion2, 'scoreCandidate1' => 1];
+					$pairwiseComparison = new PairwiseComparison($pCArray);
+					$this->addPairwiseComparison($pairwiseComparison);
+				}
+			}
+		}
+		return $this;
+	}
+
 	public function getMatrixHeaders()
 	{
 		$names = [];
 		foreach ($this->pairwiseComparisons as $pC) {
-			if(!in_array($pC->getCandidate1()->getName(),$names)){
+			if(!in_array($pC->getCandidate1()->getName(),$names, TRUE)){
 				$names[] = $pC->getCandidate1()->getName();
 			}
-			if(!in_array($pC->getCandidate2()->getName(),$names)){
+			if(!in_array($pC->getCandidate2()->getName(),$names, TRUE)){
 				$names[] = $pC->getCandidate2()->getName();
 			}
 		}
@@ -127,11 +121,10 @@ class Criterion{
 				$tmp[$positionCandidate1][$positionCandidate2] = $pairwiseComparison->getScoreCandidate2()/$pairwiseComparison->getScoreCandidate1();
 				$tmp[$positionCandidate2][$positionCandidate1] = $pairwiseComparison->getScoreCandidate1()/$pairwiseComparison->getScoreCandidate2();
 			}
-			$this->matrix['values'] = $tmp;
+			$this->matrix['values'] = new Matrix($tmp);
 			if($this->applyTransformation()){
 				foreach ($this->transformationFunctions as $function) {
-					$tfValues = array_map(function($tab)use($function) { return array_map($function['original'],$tab); }, $this->matrix['values']);
-					$this->matrix[$function['original']] = $tfValues;
+					$this->matrix[$function['original']] = $this->matrix['values']->applyFunction($function['original'], FALSE);
 				}
 			}
 		}
@@ -161,13 +154,7 @@ class Criterion{
 		if(empty($this->matrix)){
 			$this->buildMatrix();
 		}
-		// transpose the array
-		$tmp = array_map(null, ...$this->matrix['values']);
-		$str = "<table style='border:1px black;'><tr><th>".
-				implode("</th><th>", $this->matrix['headers'])."</th></tr><tr><td>".
-				implode("</tr><tr><td>",array_map(function($row) { return implode("</td><td>", array_map(function($item) { return number_format($item,2) ; },$row) );}, $tmp)).
-				"</td></tr></table>";
-		echo($str);
+		$this->matrix['values']->display();
 	}
 
 	public function calculatePriorities():self
@@ -180,12 +167,15 @@ class Criterion{
 		$this->priorities['headers'] = $this->matrix['headers'];
 		// which matrix to use
 		$indexMatrix = $this->applyTransformation ? $this->getTransformationFunction()['original'] : 'values';
+		// inverse function
+		$inverseFunction = $this->applyTransformation ? $this->getTransformationFunction()['inverse'] : function($x){return $x;};
+		$this->priorities['values'] = $this->matrix[$indexMatrix]->applyFunction($inverseFunction, FALSE)->calculateEigenvector();
+		return $this;
+
 		// transpose for summing
 		$tmp = array_map(null, ...$this->matrix[$indexMatrix]);
 		$nbElements = $this->nbCandidates;
 		$sum = array_map('array_sum', $tmp);
-		// inverse function
-		$inverseFunction = $this->applyTransformation ? $this->getTransformationFunction()['inverse'] : function($x){return $x;};
 		// vector
 		$vector = array_map($inverseFunction, array_map(function($value)use($nbElements) { return $value / $nbElements ;}, $sum ) );
 		//
@@ -200,7 +190,17 @@ class Criterion{
 		if(empty($this->priorities)){
 			$this->calculatePriorities();
 		}
-		return $this->priorities;
+
+		$prioritiesVector = array_combine($this->priorities['headers'], $this->priorities['values']->getValues()[0]);
+
+		if(!empty($this->childrenCriteria)){
+			$priorities[0] = $prioritiesVector;
+			foreach($this->childrenCriteria as $childrenCriterion){
+				$priorities[$childrenCriterion->getName()] = $childrenCriterion->getPriorities();
+			}
+			return $priorities;
+		}
+		return $prioritiesVector;
 	}
 
 	public function getLambda()
@@ -208,12 +208,11 @@ class Criterion{
 		if(empty($this->matrix)){
 			$this->buildMatrix();
 		}
-		$colSums = array_map('array_sum', $this->matrix['values']);
-		$priorities = $this->getPriorities()['values'];
-		$lambda = 0;
-		for($i = 0; $i < count($colSums); $i++){
-			$lambda += $colSums[$i] * $priorities[$i];
-		}
+		$indexMatrix = $this->applyTransformation ? $this->getTransformationFunction()['original'] : 'values';
+		// inverse function
+		$inverseFunction = $this->applyTransformation ? $this->getTransformationFunction()['inverse'] : function($x){return $x;};
+		$lambda = $this->matrix[$indexMatrix]->applyFunction($inverseFunction, FALSE)->calculateEigenvalue();
+		
 		return $lambda;
 	}
 
@@ -227,11 +226,5 @@ class Criterion{
 		$consistencyRatio = ($lambda - $n)/($al1 * $n - $al2 - $n );
 		$this->consistencyRatio = $consistencyRatio;
 		return $this->consistencyRatio;
-	}
-
-	public function deriveCandidate():Candidate
-	{
-		$candidate = new Candidate(['name'=>$this->name,'type'=>'criterion']);
-		return $candidate;
 	}
 }

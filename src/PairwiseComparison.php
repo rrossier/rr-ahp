@@ -18,7 +18,7 @@ class PairwiseComparison{
 		}
 	}
 
-	public function setCandidate1(Candidate $candidate):self
+	public function setCandidate1(Node $candidate):self
 	{
 		$this->candidate1 = $candidate;
 		return $this;
@@ -28,7 +28,7 @@ class PairwiseComparison{
 		return $this->candidate1;
 	}
 
-	public function setCandidate2(Candidate $candidate):self
+	public function setCandidate2(Node $candidate):self
 	{
 		$this->candidate2 = $candidate;
 		return $this;
@@ -67,7 +67,7 @@ class PairwiseComparison{
 		return $this->scoreCandidate2;
 	}
 
-	public function getCandidatesNames(){
+	public function getNodesNames(){
 		return [$this->candidate1->getName(),$this->candidate2->getName()];
 	}
 }
