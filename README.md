@@ -16,7 +16,7 @@ composer require lattice/ahp
 
 ### Basic example
 Reproducting the `Choose a Leader` example from [Wikipedia][2]
-```
+```php
 $ahp = new AHP();
 
 $tom = new Candidate(['name'=>'Tom','profile'=>['experience'=>10,'education'=>5,'charisma'=>9,'age'=>50]]);

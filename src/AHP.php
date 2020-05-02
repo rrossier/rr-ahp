@@ -112,10 +112,11 @@ class AHP{
 		// generate criterion
 		$goalCriterion = $this->goalCriterion;
 		// generate children criteria with the respective pairwiseComparaisons each time
+		$shape = 2;
 		foreach ($keptCriteria as $name => $criterionScores) {
 			$criterion = new Criterion($name);
-			$min = min($criterionScores);
-			$max = max($criterionScores);
+			$min = min($criterionScores) > 0 ? min($criterionScores)/$shape : $shape*min($criterionScores);
+			$max = max($criterionScores) > 0 ? $shape*max($criterionScores) : max($criterionScores)/$shape;
 			$i = $j = 0;
 			// generate the pairwiseComparaisons for this sub criterion
 			foreach ($criterionScores as $name1 => $score1) {
@@ -140,6 +141,60 @@ class AHP{
 		return $this;
 	}
 
+	public function generateCandidatesComparison()
+	{
+		$minScale = 1;
+		$maxScale = 9;
+		if(!isset($this->candidates)){
+			throw new \Exception("No candidates given", 1);
+		}
+		$allProfiles = $criteriaNames = $allCriteria = [];
+		foreach ($this->candidates as $candidate) {
+			$profile = $candidate->getProfile();
+			$allProfiles[$candidate->getName()] = $profile;
+			foreach ($profile as $key => $value) {
+				$allCriteria[$key][$candidate->getName()] = $value;
+			}
+		}
+		$criteriaNames = array_keys($allCriteria);
+		$allCandidatesNames = array_keys($allProfiles);
+		// drop criteria not common to every candidate
+		$checks = array_map(function($column) use ($allCandidatesNames) { return array_diff($allCandidatesNames, array_keys($column));}, $allCriteria);
+		$corrects = array_keys(array_filter($checks, function($check){ return count($check)==0;}));
+		$incorrects = array_keys(array_filter($checks, function($check){ return count($check)>0;}));
+		$keptCriteria = array_intersect_key($allCriteria, array_flip($corrects));
+		$droppedCriteria = array_intersect_key($allCriteria, array_flip($incorrects));
+		if(count($droppedCriteria) > 0){
+			$message = "Some Criteria: ".implode(', ', array_keys($droppedCriteria))." were dropped";
+			throw new \Exception($message, 1);
+		}
+		// generate pairwiseComparaisons for each children criteria
+		$shape = 2;
+		foreach ($keptCriteria as $name => $candidatesScores) {
+			$criterion = $this->goalCriterion->getCriterion($name);
+			$i = $j = 0;
+			// generate the pairwiseComparaisons for this sub criterion
+			foreach ($candidatesScores as $name1 => $score1) {
+				$i++;
+				$j = 0;
+				foreach ($candidatesScores as $name2 => $score2) {
+					$j++;
+					if($i < $j){
+						$whichCandidate = ($score1 >= $score2) ? 'scoreCandidate1' : 'scoreCandidate2';
+						// TODO: implements custom scaling and preference functions
+						$weight = min(9, max(1/9, max($score2, $score1)/min($score1,$score2) ));
+						$candidate1 = $this->candidates[$name1];
+						$candidate2 = $this->candidates[$name2];
+						$pCArray = ['candidate1' => $candidate1, 'candidate2' => $candidate2, $whichCandidate => $weight];
+						$pairwiseComparison = new PairwiseComparison($pCArray);
+						$criterion->addPairwiseComparison($pairwiseComparison);
+					}
+				}
+			}
+		}
+		return $this;
+	}
+
 	public function getGoal():Criterion
 	{
 		if(!isset($this->goalCriterion)){
@@ -155,21 +210,7 @@ class AHP{
 					$this->goalCriterion->addCriterion($criterion);
 				}
 			}
-			$this->goalCriterion->generatePairwiseComparison();
-			
-			/*
-			// $goalCriterion->setWeights(array_fill(0, count($this->criteria), 1));
-			// create pairwiseComparison for all possible couples
-			for($i = 0; $i < count($this->criteria); $i++){
-				for($j = 0; $j < $i; $j++){
-						$candidate1 = $this->criteria[$i];
-						$candidate2 = $this->criteria[$j];
-						$pairwiseComparison = new PairwiseComparison(['candidate1'=>$candidate1,'candidate2'=>$candidate2,'scoreCandidate1'=>1]);
-						$goalCriterion->addPairwiseComparison($pairwiseComparison);
-				}
-			}
-			$this->goalCriterion = $goalCriterion;
-			*/
+			$this->goalCriterion->generateCriteriaPairwiseComparison();
 		}
 		return $this->goalCriterion;
 	}
@@ -190,9 +231,6 @@ class AHP{
 		// insert into a Matrix object for handling
 		$this->totalPriorities['values'] = new Matrix($this->totalPriorities['values']);
 		
-		// dump($this->goalCriterion->getPriorities());
-		// dump($this->localPriorities);
-		// dump($this->totalPriorities);die();
 		// priorities per candidate
 		$this->priorities = array_combine( $this->totalPriorities['headers'], 
 											$this->totalPriorities['values']->sumPerColumn()->extract());

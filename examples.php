@@ -83,6 +83,53 @@ dump($ahp->getGoal()->getConsistencyRatio());
  *
  *
  */
+echo '<h3>Implicit Comparisons with Goal</h3>';
+$ahp = new AHP();
+
+// define the candidates
+$ahp = new AHP();
+
+$tom = new Candidate(['name'=>'Tom','profile'=>['Experience'=>10,'Education'=>5,'Charisma'=>9,'Age'=>50]]);
+$dick = new Candidate(['name'=>'Dick','profile'=>['Experience'=>30,'Education'=>3,'Charisma'=>5,'Age'=>60]]);
+$harry = new Candidate(['name'=>'Harry','profile'=>['Experience'=>5,'Education'=>7,'Charisma'=>3,'Age'=>30]]);
+
+$ahp->addCandidate($tom);
+$ahp->addCandidate($dick);
+$ahp->addCandidate($harry);
+
+// goal criterion
+$goal = new Criterion('Choose a leader');
+$goal->setType('goal');
+// explicitly added
+$ahp->addCriterion($goal);
+// define the criteria below goal
+$experienceCriterion = new Criterion('Experience');
+$educationCriterion = new Criterion('Education');
+$charismaCriterion = new Criterion('Charisma');
+$ageCriterion = new Criterion('Age');
+// add the criteria to the goal criterion
+$goal->addCriterion($experienceCriterion);
+$goal->addCriterion($educationCriterion);
+$goal->addCriterion($charismaCriterion);
+$goal->addCriterion($ageCriterion);
+// define the comparisons between the criteria
+$goal->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$experienceCriterion,'candidate2'=>$educationCriterion,'scoreCandidate1'=>4]));
+$goal->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$experienceCriterion,'candidate2'=>$charismaCriterion,'scoreCandidate1'=>3]));
+$goal->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$experienceCriterion,'candidate2'=>$ageCriterion,'scoreCandidate1'=>7]));
+$goal->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$educationCriterion,'candidate2'=>$charismaCriterion,'scoreCandidate1'=>1/3]));
+$goal->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$educationCriterion,'candidate2'=>$ageCriterion,'scoreCandidate1'=>3]));
+$goal->addPairwiseComparison(new PairwiseComparison(['candidate1'=>$charismaCriterion,'candidate2'=>$ageCriterion,'scoreCandidate1'=>5]));
+// generate for each criteria attached to the goal the candidates' comparisons
+$ahp->generateCandidatesComparison(); // only works if goal has criteria with names matched in each candidate's profile
+
+$ahp->displayResults('total');
+$ahp->displayResults();
+dump($ahp->getGoal()->getConsistencyRatio());
+
+/*
+ *
+ *
+ */
 echo '<h3>Explicit Comparisons and Goal</h3>';
 
 $ahp = new AHP();
@@ -146,7 +193,7 @@ $goalCriterion->addPairwiseComparison(new PairwiseComparison([
 $goalCriterion->addPairwiseComparison(new PairwiseComparison([
 											'candidate1' => $educationCriterion,
 											'candidate2' => $charismaCriterion,
-											'scoreCandidate2' => 3
+											'scoreCandidate1' => 1/3
 											]));
 $goalCriterion->addPairwiseComparison(new PairwiseComparison([
 											'candidate1' => $educationCriterion,

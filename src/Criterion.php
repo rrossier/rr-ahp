@@ -4,8 +4,6 @@ namespace Lattice\AHP;
 
 class Criterion extends Node{
 	
-	// private $name;
-	// private $type = 'criteria';
 	private $childrenCriteria;
 	private $pairwiseComparisons;
 	private $nbCandidates;
@@ -43,6 +41,16 @@ class Criterion extends Node{
 		return $this->childrenCriteria;
 	}
 
+	public function getCriterion($name)
+	{
+		foreach ($this->childrenCriteria as $criterion) {
+			if($criterion->getName() == $name){
+				return $criterion;
+			}
+		}
+		return NULL;
+	}
+
 	public function getNbCandidates()
 	{
 		if(!isset($this->nbCandidates)){
@@ -71,7 +79,7 @@ class Criterion extends Node{
 		return $this;
 	}
 
-	public function generatePairwiseComparison(){
+	public function generateCriteriaPairwiseComparison(){
 		if(empty($this->childrenCriteria))
 			throw new \Exception("Cannot generate pairwise comparisons without any criteria", 1);
 			
